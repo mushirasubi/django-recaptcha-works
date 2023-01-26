@@ -73,22 +73,22 @@ class RecaptchaField(forms.Field):
         The optional ``private_key`` argument can be used to override the
         default use of the project-wide ``RECAPTCHA_PRIVATE_KEY`` setting.
         """
-        self.remote_ip = None
         self.private_key = private_key or settings.RECAPTCHA_PRIVATE_KEY
         self.use_ssl = use_ssl or settings.RECAPTCHA_USE_SSL
         super(RecaptchaField, self).__init__(*args, **kwargs)
 
     def clean(self, value):
-        if not self.remote_ip:
-            raise forms.ValidationError(self.error_messages['no-remote-ip'])
+        
         value = super(RecaptchaField, self).clean(value)
-        challenge, response = value
+        challenge, response, remote_ip = value
         if not challenge:
             raise forms.ValidationError(self.error_messages['challenge-error'])
         if not response:
             raise forms.ValidationError(self.error_messages['required'])
+        if not remote_ip:
+            raise forms.ValidationError(self.error_messages['no-remote-ip'])
         try:
-            value = validate_recaptcha(self.remote_ip, challenge, response,
+            value = validate_recaptcha(remote_ip, challenge, response,
                                        self.private_key, self.use_ssl)
         except RecaptchaError, e:
             if e.code == 'incorrect-captcha-sol':
